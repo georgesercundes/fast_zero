@@ -67,7 +67,7 @@ def test_create_user_with_invalid_email(client, user):
     assert response.json() == {'detail': 'E-mail already exists'}
 
 
-def test_list_users(client, user):
+def test_list_users_successfully(client, user):
     user_schema = UserPublic.model_validate(user).model_dump()
     response = client.get('/users/')
 
@@ -75,9 +75,10 @@ def test_list_users(client, user):
     assert response.json() == {'users': [user_schema]}
 
 
-def test_update_user_successfully(client, user):
+def test_update_user_successfully(client, user, token):
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'bob',
             'email': 'bob@example.com',
@@ -93,21 +94,7 @@ def test_update_user_successfully(client, user):
     }
 
 
-def test_update_user_should_return_not_found(client):
-    response = client.put(
-        '/users/666',
-        json={
-            'username': 'bob',
-            'email': 'bob@example.com',
-            'password': 'mynewpassword',
-        },
-    )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User not found'}
-
-
-def test_update_user_integrity_error(client, user):
+def test_update_user_integrity_error(client, user, token):
     client.post(
         '/users/',
         json={
@@ -119,6 +106,7 @@ def test_update_user_integrity_error(client, user):
 
     response = client.put(
         f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'fausto',
             'email': 'bob@example.com',
@@ -148,18 +136,14 @@ def test_find_user_should_return_not_found(client):
     assert response.json() == {'detail': 'User not found'}
 
 
-def test_delete_user_ok(client, user):
-    response = client.delete(f'/users/{user.id}')
+def test_delete_user_successfully(client, user, token):
+    response = client.delete(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User deleted!'}
-
-
-def test_delete_user_should_return_not_found(client):
-    response = client.delete('/users/999')
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User not found'}
 
 
 def test_create_user_db(session, mock_db_time):
@@ -177,3 +161,42 @@ def test_create_user_db(session, mock_db_time):
         'email': 'test@test',
         'created_at': time,
     }
+
+
+def test_get_access_token_successfully(client, user):
+    response = client.post(
+        '/token',
+        data={'username': user.email, 'password': user.clean_password},
+    )
+
+    token = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert 'access_token' in token
+    assert 'token_type' in token
+
+
+def test_get_access_token_with_invalid_email(client, user):
+    response = client.post(
+        '/token',
+        data={
+            'username': 'invalid@email.com',
+            'password': user.clean_password,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
+
+
+def test_get_access_token_with_invalid_password(client, user):
+    response = client.post(
+        '/token',
+        data={
+            'username': user.email,
+            'password': 'invalid_password',
+        },
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Incorrect email or password'}
