@@ -37,14 +37,15 @@ async def create_user(user: UserSchema, session: Session):
         status_code = HTTPStatus.CONFLICT
 
         if db_user.username == user.username:
-            detail = 'Username already exists'
+            raise HTTPException(
+                status_code=status_code,
+                detail='Username already exists',
+            )
         elif db_user.email == user.email:
-            detail = 'E-mail already exists'
-
-        raise HTTPException(
-            status_code=status_code,
-            detail=detail,
-        )
+            raise HTTPException(
+                status_code=status_code,
+                detail='E-mail already exists',
+            )
 
     hashed_password = get_password_hash(user.password)
 
@@ -64,10 +65,10 @@ async def create_user(user: UserSchema, session: Session):
 @router.get('/', status_code=HTTPStatus.OK, response_model=UserList)
 async def list_users(
     session: Session,
-    filter: Annotated[FilterPage, Query()],
+    user_filter: Annotated[FilterPage, Query()],
 ):
     query = await session.scalars(
-        select(User).offset(filter.offset).limit(filter.limit)
+        select(User).offset(user_filter.offset).limit(user_filter.limit)
     )
 
     users = query.all()
@@ -115,7 +116,7 @@ async def delete_user(
             status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
         )
 
-    session.delete(current_user)
+    await session.delete(current_user)
     await session.commit()
 
     return {'message': 'User deleted!'}

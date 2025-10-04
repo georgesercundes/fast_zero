@@ -9,12 +9,12 @@ def test_get_access_token_successfully(client, user):
         data={'username': user.email, 'password': user.clean_password},
     )
 
-    token = response.json()
+    access_token = response.json()
 
     assert response.status_code == HTTPStatus.OK
-    assert 'access_token' in token
-    assert 'token_type' in token
-    assert token['token_type'] == 'bearer'
+    assert 'access_token' in access_token
+    assert 'token_type' in access_token
+    assert access_token['token_type'] == 'bearer'
 
 
 def test_expired_access_token(client, user):
@@ -25,12 +25,12 @@ def test_expired_access_token(client, user):
         )
 
         assert response.status_code == HTTPStatus.OK
-        token = response.json()['access_token']
+        access_token = response.json()['access_token']
 
     with freeze_time('2023-07-14 12:31:00'):
         response = client.put(
             f'/users/{user.id}',
-            headers={'Authorization': f'Bearer {token}'},
+            headers={'Authorization': f'Bearer {access_token}'},
             json={
                 'username': 'wrong',
                 'email': 'wrong@example.com',
@@ -90,12 +90,12 @@ def test_refresh_token_with_expired_access_token(client, user):
         )
 
         assert response.status_code == HTTPStatus.OK
-        token = response.json()['access_token']
+        access_token = response.json()['access_token']
 
     with freeze_time('2023-07-14 12:31:00'):
         response = client.post(
             '/auth/refresh_token',
-            headers={'Authorization': f'Bearer {token}'},
+            headers={'Authorization': f'Bearer {access_token}'},
         )
 
         assert response.status_code == HTTPStatus.UNAUTHORIZED

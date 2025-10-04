@@ -7,9 +7,9 @@ from fast_zero.security import create_access_token, settings
 
 def test_jwt():
     data = {'test': 'test'}
-    token = create_access_token(data)
+    access_token = create_access_token(data)
     decoded = decode(
-        token,
+        access_token,
         settings.SECRET_KEY,
         algorithms=[settings.ALGORITHM],
     )
