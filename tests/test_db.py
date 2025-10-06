@@ -13,7 +13,9 @@ async def test_create_user(session, mock_db_time):
         session.add(new_user)
         await session.commit()
 
-    found_user = await session.scalar(select(User).where(User.username == 'alice'))
+    found_user = await session.scalar(
+        select(User).where(User.username == 'alice')
+    )
 
     assert asdict(found_user) == {
         'id': 1,
@@ -28,12 +30,12 @@ async def test_create_user(session, mock_db_time):
 @pytest.mark.asyncio
 async def test_create_todo(session, user: User):
     new_todo = Todo(
-        title='Test Todo', 
-        description='Test Desc', 
-        state='draft', 
+        title='Test Todo',
+        description='Test Desc',
+        state='draft',
         user_id=user.id,
     )
-    
+
     session.add(new_todo)
     await session.commit()
 
@@ -64,6 +66,3 @@ async def test_user_todo_relationship(session, user: User):
     user: User = await session.scalar(select(User).where(User.id == user.id))
 
     assert user.todos == [todo]
-
-
-

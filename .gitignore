@@ -180,3 +180,4 @@ pyrightconfig.json
 database.db
 :memory
 .idea
+.vscode
